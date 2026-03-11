@@ -16,7 +16,6 @@ class HeartRateScanner:
     
     def __init__(self):
         self.current_heart_rate: int = 0
-        self.current_rr_interval: Optional[int] = None
         self.device: Optional[BLEDevice] = None
         self.client: Optional[BleakClient] = None
         self.is_connected: bool = False
@@ -29,14 +28,12 @@ class HeartRateScanner:
     
     def _notification_handler(self, sender, data: bytearray):
         """处理心率通知"""
-        heart_rate, _, rr_interval = parse_heart_rate(data)
-        self.current_heart_rate = heart_rate
-        self.current_rr_interval = rr_interval
+        self.current_heart_rate = parse_heart_rate(data)
         
-        logger.info(f"心率更新: {heart_rate} bpm")
+        logger.info(f"心率更新: {self.current_heart_rate} bpm")
         
         if self._on_heart_rate_update:
-            self._on_heart_rate_update(heart_rate)
+            self._on_heart_rate_update(self.current_heart_rate)
     
     async def scan_all(self) -> list[BLEDevice]:
         """扫描所有心率设备"""

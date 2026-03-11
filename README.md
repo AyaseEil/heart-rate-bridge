@@ -1,6 +1,8 @@
+[English](./README_EN.md)
+
 # Heart Rate Bridge | 心率桥接服务
 
-一个在 Windows 上读取心率手表蓝牙广播并提供 HTTP API 查询的服务。
+一个在 Windows 上读取心率手表蓝牙广播并提供 API 查询的服务。
 
 ## 功能
 
@@ -37,12 +39,41 @@ python main.py
 ```bash
 # 获取心率
 curl http://localhost:8000/api/heartrate
-# 返回: {"heart_rate": 75, "unit": "bpm"}
+# 返回:
+    {
+        "heart_rate": 78,
+        "unit": "bpm"
+    }
 
 # 获取设备状态
 curl http://localhost:8000/api/device/status
+# 返回:
+    {
+        "connected": true,
+        "device_name": "HUAWEI WATCH HR-83C",
+        "device_address": "E4:3D:0E:0B:F8:3C",
+        "current_heart_rate": 78
+    }
 ```
 
-## 许可证
+## 用途
+
+[LiteMonitor](https://github.com/Diorser/LiteMonitor)的一个小插件，可以把心率数据集成到监控系统中。
+
+### 使用方法
+
+把本项目根目录下的`HeartRate.json`放到`LiteMonitor\resources\plugins`中，然后重启 `LiteMonitor` 即可。
+
+如果你也想开发自己的插件，可以参考[LiteMonitor 插件开发完全指南](https://github.com/Diorser/LiteMonitor/blob/master/resources/plugins/PLUGIN_DEV_GUIDE.md)。
+
+如果遇到BUG，欢迎提出 [Issues](https://github.com/AyaseEil/heart-rate-bridge/issues)。
+
+## 更新计划
+
+1.自动重连
+
+2.设备断连后改变返回值
+
+## 开源协议
 
 MIT

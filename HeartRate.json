@@ -1,0 +1,30 @@
+{
+  "id": "heartrate",
+  "meta": {
+    "name": "心率监控",
+    "version": "1.0",
+    "author": "hkb",
+    "description": "从本地API获取实时心率数据"
+  },
+  "execution": {
+    "type": "chain",
+    "interval": 5,
+    "steps": [
+      {
+        "id": "fetch_heartrate",
+        "url": "http://localhost:8000/api/heartrate",
+        "extract": {
+          "heart_rate": "heart_rate",
+          "unit": "unit"
+        }
+      }
+    ]
+  },
+  "outputs": [
+    {
+      "key": "❤",
+      "label": "心率",
+      "format_val": "{{heart_rate}}次/分"
+    }
+  ]
+}

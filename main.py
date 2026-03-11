@@ -1,6 +1,7 @@
 """心率桥接服务 - 入口文件"""
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 import uvicorn
@@ -17,26 +18,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 创建 FastAPI 应用
-app = FastAPI(
-    title="Heart Rate Bridge",
-    description="读取心率手表广播并提供 HTTP API 查询",
-    version="1.0.0"
-)
-
-# 注册路由
-app.include_router(router, prefix="/api")
-
 # 全局扫描器实例
 scanner = HeartRateScanner()
 api.routes.scanner = scanner  # 注入到路由模块
 
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """关闭时断开连接"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    yield
+    # 关闭时断开连接
     logger.info("服务关闭中...")
     await scanner.disconnect()
+
+
+# 创建 FastAPI 应用
+app = FastAPI(
+    title="Heart Rate Bridge",
+    description="读取心率手表广播并提供 HTTP API 查询",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# 注册路由
+app.include_router(router, prefix="/api")
 
 
 async def select_and_connect():
