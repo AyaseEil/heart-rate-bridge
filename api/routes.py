@@ -14,6 +14,7 @@ class HeartRateResponse(BaseModel):
     """心率响应模型"""
     heart_rate: int
     unit: str = "bpm"
+    connected: bool = True
 
 
 class DeviceStatusResponse(BaseModel):
@@ -22,6 +23,7 @@ class DeviceStatusResponse(BaseModel):
     device_name: str | None = None
     device_address: str | None = None
     current_heart_rate: int
+    reconnecting: bool = False
 
 
 @router.get("/heartrate", response_model=HeartRateResponse)
@@ -30,10 +32,10 @@ async def get_heart_rate():
     if not scanner:
         raise HTTPException(status_code=503, detail="扫描器未初始化")
     
-    if not scanner.is_connected:
-        raise HTTPException(status_code=503, detail="设备未连接")
-    
-    return HeartRateResponse(heart_rate=scanner.current_heart_rate)
+    return HeartRateResponse(
+        heart_rate=scanner.current_heart_rate,
+        connected=scanner.is_connected
+    )
 
 
 @router.get("/device/status", response_model=DeviceStatusResponse)

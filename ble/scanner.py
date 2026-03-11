@@ -21,6 +21,7 @@ class HeartRateScanner:
         self.is_connected: bool = False
         self._on_heart_rate_update: Optional[Callable[[int], None]] = None
         self.discovered_devices: list[BLEDevice] = []  # 存储发现的设备
+        self._is_reconnecting: bool = False  # 是否正在重连
     
     def set_callback(self, callback: Callable[[int], None]):
         """设置心率更新回调函数"""
@@ -34,6 +35,59 @@ class HeartRateScanner:
         
         if self._on_heart_rate_update:
             self._on_heart_rate_update(self.current_heart_rate)
+    
+    def _disconnected_callback(self, client):
+        """设备断开连接回调"""
+        logger.warning(f"设备已断开: {self.device.name if self.device else 'Unknown'}")
+        self.is_connected = False
+        self.current_heart_rate = -1  # 断开后重置心率为 0
+        
+        # 触发自动重连
+        if not self._is_reconnecting:
+            asyncio.create_task(self._reconnect())
+    
+    async def _reconnect(self):
+        """自动重连"""
+        if self._is_reconnecting or not self.device:
+            return
+        
+        self._is_reconnecting = True
+        device_name = self.device.name or "Unknown"
+        
+        logger.info(f"开始尝试重连 {device_name}...")
+        
+        retry_count = 0
+        max_retries = 10  # 最大重试次数
+        
+        while retry_count < max_retries:
+            retry_count += 1
+            logger.info(f"重连尝试 {retry_count}/{max_retries}...")
+            
+            try:
+                # 尝试重新连接
+                self.client = BleakClient(
+                    self.device,
+                    disconnected_callback=self._disconnected_callback
+                )
+                await self.client.connect()
+                self.is_connected = True
+                
+                # 订阅心率通知
+                await self.client.start_notify(
+                    config.HEART_RATE_MEASUREMENT_UUID,
+                    self._notification_handler
+                )
+                
+                logger.info(f"✓ 重连成功: {device_name}")
+                self._is_reconnecting = False
+                return
+                
+            except Exception as e:
+                logger.warning(f"重连失败: {e}")
+                await asyncio.sleep(3)  # 等待后重试
+        
+        logger.error(f"重连失败，已达到最大重试次数 ({max_retries})")
+        self._is_reconnecting = False
     
     async def scan_all(self) -> list[BLEDevice]:
         """扫描所有心率设备"""
@@ -109,7 +163,11 @@ class HeartRateScanner:
         
         logger.info(f"正在连接设备: {self.device.name or 'Unknown'} ({self.device.address})")
         
-        self.client = BleakClient(self.device)
+        self.client = BleakClient(
+            self.device,
+            disconnected_callback=self._disconnected_callback
+        )
+        
         await self.client.connect()
         self.is_connected = True
         
@@ -127,6 +185,8 @@ class HeartRateScanner:
     
     async def disconnect(self):
         """断开连接"""
+        self._is_reconnecting = False
+        
         if self.client and self.is_connected:
             try:
                 await self.client.stop_notify(config.HEART_RATE_MEASUREMENT_UUID)
@@ -143,4 +203,5 @@ class HeartRateScanner:
             "device_name": self.device.name if self.device else None,
             "device_address": self.device.address if self.device else None,
             "current_heart_rate": self.current_heart_rate,
+            "reconnecting": self._is_reconnecting,
         }
