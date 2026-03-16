@@ -70,9 +70,6 @@ curl http://localhost:8000/api/device/status
 
 ## 更新计划
 
-1.自动重连
-
-2.设备断连后改变返回值
 
 ## 开源协议
 
